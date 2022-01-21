@@ -12,21 +12,104 @@ import binascii
 
 
 class DataCreator():
-    CHAR = 'c'
-    SCHAR = 'b'
-    UCHAR = 'B'
-    SHORT = 'h'
-    USHORT = 'H'
-    INT = 'i'
-    UINT = 'I'
-    LONG = 'l'
-    ULONG = 'L'
-    LONGLONG = 'q'
-    ULONGLONG = 'Q'
-    FLOAT = 'f'
-    DOUBLE = 'd'
-    STR = 's'
-    BYTES = 's'
+    """!datacreator
+    @brief Data creator for Omron FINS protocol.
+    """
+    ## type indicator for struct
+    CHAR = ('c', 1)
+    SCHAR = ('b', 1)
+    UCHAR = ('B', 1)
+    SHORT = ('h', 2)
+    USHORT = ('H', 2)
+    INT = ('i', 4)
+    UINT = ('I', 4)
+    LONG = ('l', 4)
+    ULONG = ('L', 4)
+    LONGLONG = ('q', 8)
+    ULONGLONG = ('Q', 8)
+    FLOAT = ('f', 4)
+    DOUBLE = ('d', 8)
+    STR = ('s', 1)
+    BYTES = ('s', 1)
+    ## Memory type definition. 
+    ## First element of each tuples is type definition according to the fins manual.
+    ## Second is size of one element of data.
+    CIO_BIT = (0x30, 1)
+    WR_BIT = (0x31, 1)
+    HR_BIT = (0x32, 1)
+    AR_BIT = (0x33, 1)
+    CIO_FORCE_BIT = (0x70, 1)
+    WR_FORCE_BIT = (0x71, 1)
+    HR_FORCE_BIT = (0x72, 1)
+    CIO_WORD = (0xb0, 2)
+    WR_WORD = (0xb1, 2)
+    HR_WORD = (0xb2, 2)
+    AR_WORD = (0xb3, 2)
+    CIO_FORCE_WORD = (0xf0, 4)
+    WR_FORCE_WORD = (0xf1 , 4)
+    HR_FORCE_WORD = (0xf2 , 4)
+    TIM_FLG = (0x09, 1)
+    TIM_FORCE_FLG = (0x49, 1)
+    TIM_CURRENT = (0x89, 2)
+    DM_BIT = (0x02, 1)
+    DM_WORD = (0x82, 1)
+    EM0_BIT = (0x20, 1)
+    EM1_BIT = (0x21, 1)
+    EM2_BIT = (0x22, 1)
+    EM3_BIT = (0x23, 1)
+    EM4_BIT = (0x24, 1)
+    EM5_BIT = (0x25, 1)
+    EM6_BIT = (0x26, 1)
+    EM7_BIT = (0x27, 1)
+    EM8_BIT = (0x28, 1)
+    EM9_BIT = (0x29, 1)
+    EMA_BIT = (0x2a, 1)
+    EMB_BIT = (0x2b, 1)
+    EMC_BIT = (0x2c, 1)
+    EMD_BIT = (0x2d, 1)
+    EME_BIT = (0x2e, 1)
+    EMF_BIT = (0x2f, 1)
+    EM10_BIT = (0xe0, 1)
+    EM11_BIT = (0xe1, 1)
+    EM12_BIT = (0xe2, 1)
+    EM13_BIT = (0xe3, 1)
+    EM14_BIT = (0xe4, 1)
+    EM15_BIT = (0xe5, 1)
+    EM16_BIT = (0xe6, 1)
+    EM17_BIT = (0xe7, 1)
+    EM18_BIT = (0xe8, 1)
+    EM0_BIT = (0x20, 1)
+    EM1_WORD = (0xa1, 2)
+    EM2_WORD = (0xa2, 2)
+    EM3_WORD = (0xa3, 2)
+    EM4_WORD = (0xa4, 2)
+    EM5_WORD = (0xa5, 2)
+    EM6_WORD = (0xa6, 2)
+    EM7_WORD = (0xa7, 2)
+    EM8_WORD = (0xa8, 2)
+    EM9_WORD = (0xa9, 2)
+    EMA_WORD = (0xaa, 2)
+    EMB_WORD = (0xab, 2)
+    EMC_WORD = (0xac, 2)
+    EMD_WORD = (0xad, 2)
+    EME_WORD = (0xae, 2)
+    EMF_WORD = (0xaf, 2)
+    EM10_WORD = (0x60, 2)
+    EM11_WORD = (0x61, 2)
+    EM12_WORD = (0x62, 2)
+    EM13_WORD = (0x63, 2)
+    EM14_WORD = (0x64, 2)
+    EM15_WORD = (0x65, 2)
+    EM16_WORD = (0x66, 2)
+    EM17_WORD = (0x67, 2)
+    EM_CURRENT_BIT = (0x0a, 1)
+    EM_CURRENT_WORD = (0x98, 2)
+    EM_CURRENT_BUNK_NUM = (0xbc, 2)
+    TK_BIT = (0x06, 1)
+    TK_STATUS = (0x46, 1)
+    IR = (0xdc, 4)
+    DR = (0xbc, 2)
+    CLOCK = (0x07, 1)
 
     def __init__(self, src_net_addr=0, src_node_num=0, src_unit_addr=0, srv_id=0):
         """!Initializer
@@ -102,7 +185,7 @@ class DataCreator():
             elif a_data[1] == DataCreator.STR:
                 out_bin += a_data[0].encode('utf-8')
             else:
-                out_bin += struct.pack('!'+a_data[1], a_data[0])
+                out_bin += struct.pack('!'+a_data[1][0], a_data[0])
         return out_bin
 
     def convert_ascii2data(self, data, fmt):
@@ -118,8 +201,20 @@ class DataCreator():
             if a_fmt[1] == 1:
                 whole_fmt += a_fmt[0]
             else:
-                whole_fmt += str(a_fmt[1]) + a_fmt[0]
+                whole_fmt += str(a_fmt[1]) + a_fmt[0][0]
         return struct.unpack(whole_fmt, bin_data)
+
+    def decode_read_data(self, data, dtype):
+        if len(data) <= 12:
+            return None
+        values = data[12:]
+        if dtype[1] == len(values):
+            return struct.unpack("!"+dtype[0], values)[0]
+        num_elem = len(values)//dtype[1]
+        decoded = struct.unpack("!"+str(num_elem)+dtype[0], values)
+        if dtype == DataCreator.STR or dtype == DataCreator.BYTES:
+            return decoded[0].decode('unicode-escape')
+        return decoded 
 
     def _create_header(self, dst_node_num, dst_unit_addr, dst_net_addr=0, delay=2):
         fmt = [

@@ -22,6 +22,10 @@ class TestCase0(unittest.TestCase):
     - [x] test02: create memory area read command
     - [x] test03: convert text data in resnpose msg
     - [x] test04: create command to write mem area
+    - [x] test05: create command to read mem area
+    - [x] test06: convert single data
+    - [x] test07: convert multiple data as a tuple
+    - [ ] test08: convert string value
     """
     def setUp(self):
         self.data_creator = DataCreator(
@@ -73,8 +77,37 @@ class TestCase0(unittest.TestCase):
         self.assertEqual(
                 comm, b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01\xa0\x01\xf4\x00\x00\x01')
 
+    def test06(self):
+        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01'
+        test_data = test_header + b'\x01'
+        out = self.data_creator.decode_read_data(test_data, DataCreator.UCHAR)
+        self.assertEqual(out, 1)
+        test_data = test_header + b'\x00\x21'
+        out = self.data_creator.decode_read_data(test_data, DataCreator.USHORT)
+        self.assertEqual(out, 33)
+
+    def test07(self):
+        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01'
+        test_data = test_header + b'\x01\x00'
+        out = self.data_creator.decode_read_data(test_data, DataCreator.UCHAR)
+        self.assertEqual(out, (1, 0))
+        test_data = test_header + b'\x00\x21\x00\x05'
+        out = self.data_creator.decode_read_data(test_data, DataCreator.USHORT)
+        self.assertEqual(out, (33, 5))
+
+    def test08(self):
+        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01'
+        test_data = test_header + b'0\x00000004\x000\x00\x001L\x00\x00'
+        out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
+        print(out)
+        self.assertEqual(out, 'testhogehoge')
+        test_data = test_header + b'\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+        out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
+        self.assertEqual(out, 'brabrabra')
+
     def tearDown(self):
         pass
+
 
 class TestCase1(unittest.TestCase):
     """!
@@ -113,6 +146,7 @@ class TestCase1(unittest.TestCase):
 
     def tearDown(self):
         self.fins.close()
+
 
 if __name__ == '__main__':
     unittest.main()
