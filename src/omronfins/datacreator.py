@@ -16,6 +16,7 @@ class DataCreator():
     @brief Data creator for Omron FINS protocol.
     """
     ## type indicator for struct
+    BIT = ('B', 1)  # The bit is imput as a unsigned char in fins protocol
     CHAR = ('c', 1)
     SCHAR = ('b', 1)
     UCHAR = ('B', 1)
