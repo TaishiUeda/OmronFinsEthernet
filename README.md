@@ -6,6 +6,10 @@ It is confirmed that this can work with NX series PLC.
 
 ## Usage
 
+Please refer to documents created by doxygen for the details.
+
+It's a sample code.
+
 ```python
 import omronfins.finsudp as finsudp
 from omronfins.finsudp import datadef
@@ -21,19 +25,19 @@ ret = fins.write_mem_area(datadef.EM0_WORD, 0, 0, 1, (20, datadef.USHORT))
 ret, value = fins.read_mem_area(datadef.EM0_WORD, 0, 0, 1, datadef.USHORT)
 print(value)  # the value becomes '20'
 
-# Writing four bits to Extended memory area's address 53.
+# Writing four bits to Extended memory area's address 5.
 ret = fins.write_mem_area(datadef.EM0_BIT, 5, 0, 4,
     [(1, datadef.BIT), (0, datadef.BIT), (1, datadef.BIT), (0, datadef.BIT)])
 
-# Reading four bits from Extended memory area's address 53.
+# Reading four bits from Extended memory area's address 5.
 ret, values = fins.read_mem_area(datadef.EM0_BIT, 5, 0, 4, datadef.BIT)
 print(values)  # values become a tuple like (1, 0, 1, 0).
 
-# Writing a string to Extended memory area's address 60.
+# Writing a string to Extended memory area's address 6.
 # Fourth argument '4' means size of 16bit element and it becomes half of length of the string.
 ret = fins.write_mem_area(datadef.EM0_WORD, 6, 0, 4, ("testtest", datadef.STR))
 
-# Reading a string from Extended memory area's address 53.
+# Reading a string from Extended memory area's address 6.
 ret, value = fins.read_mem_area(datadef.EM0_WORD, 6, 0, 4, datadef.STR)
 print(value)  # value become "testtest"
 ```
