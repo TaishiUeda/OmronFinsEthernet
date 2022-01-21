@@ -12,6 +12,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
 from omronfins.datacreator import DataCreator
 from omronfins.finsudp import FinsUDP
+import omronfins.finsudp as finsudp
 
 
 class TestCase0(unittest.TestCase):
@@ -25,7 +26,7 @@ class TestCase0(unittest.TestCase):
     - [x] test05: create command to read mem area
     - [x] test06: convert single data
     - [x] test07: convert multiple data as a tuple
-    - [ ] test08: convert string value
+    - [x] test08: convert string value
     """
     def setUp(self):
         self.data_creator = DataCreator(
@@ -47,16 +48,14 @@ class TestCase0(unittest.TestCase):
                 dst_node_num=239,
                 dst_unit_addr=11)
         data = self.data_creator.command_read_mem_area(
-                90, 0, 0, 1)
-        self.assertEqual(data, b'\x80\x00\x02\x00\xef\x0b\x00\xaa\x00\x00\x01\x01Z\x00\x00\x00\x00\x01')
+                finsudp.datadef.EM0_WORD, 0, 0, 1)
+        self.assertEqual(data, b'\x80\x00\x02\x00\xef\x0b\x00\xaa\x00\x00\x01\x01\xa0\x00\x00\x00\x00\x01')
         
     def test03(self):
-        test_response = b'\x80\x00\x02\x00\xef\x0b\x00\xaa\x00\x00\x01\x01\x00\x00\x00\x01'
-        fmt = [(DataCreator.BYTES, 12),
-               (DataCreator.USHORT, 2)]
-        data = self.data_creator.convert_ascii2data(
-                test_response, fmt)
-        self.assertEqual(data[1:], (0, 1))
+        test_response = b'\x80\x00\x02\x00\xef\x0b\x00\xaa\x00\x00\x01\x01\x00\x00\x00\x00\x00\x01'
+        data = self.data_creator.decode_read_data(
+                test_response, finsudp.datadef.USHORT)
+        self.assertEqual(data[1], (0, 1))
 
     def test04(self):
         self.data_creator.set_destination(
@@ -64,45 +63,45 @@ class TestCase0(unittest.TestCase):
                 dst_node_num=0x2,
                 dst_unit_addr=0x12)
         data = self.data_creator.command_write_mem_area(
-                90, 0, 0, 1, (5, DataCreator.USHORT))
+                finsudp.datadef.EM0_WORD, 0, 0, 1, (5, DataCreator.USHORT))
         self.assertEqual(
-                data, b'\x80\x00\x02\x00\x02\x12\x00\xaa\x00\x00\x01\x02Z\x00\x00\x00\x00\x01\x00\x05')
+                data, b'\x80\x00\x02\x00\x02\x12\x00\xaa\x00\x00\x01\x02\xa0\x00\x00\x00\x00\x01\x00\x05')
 
     def test05(self):
         self.data_creator.set_destination(
                 dst_net_addr=0,
                 dst_node_num=13,
                 dst_unit_addr=0)
-        comm = self.data_creator.command_read_mem_area(0xA0, 500, 0, 1)
+        comm = self.data_creator.command_read_mem_area(
+                finsudp.datadef.EM0_WORD, 500, 0, 1)
         self.assertEqual(
                 comm, b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01\xa0\x01\xf4\x00\x00\x01')
 
     def test06(self):
-        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01'
+        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01\x00\x00'
         test_data = test_header + b'\x01'
-        out = self.data_creator.decode_read_data(test_data, DataCreator.UCHAR)
+        ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.UCHAR)
         self.assertEqual(out, 1)
         test_data = test_header + b'\x00\x21'
-        out = self.data_creator.decode_read_data(test_data, DataCreator.USHORT)
+        ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.USHORT)
         self.assertEqual(out, 33)
 
     def test07(self):
-        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01'
+        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01\x00\x00'
         test_data = test_header + b'\x01\x00'
-        out = self.data_creator.decode_read_data(test_data, DataCreator.UCHAR)
+        ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.UCHAR)
         self.assertEqual(out, (1, 0))
         test_data = test_header + b'\x00\x21\x00\x05'
-        out = self.data_creator.decode_read_data(test_data, DataCreator.USHORT)
+        ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.USHORT)
         self.assertEqual(out, (33, 5))
 
     def test08(self):
-        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01'
-        test_data = test_header + b'0\x00000004\x000\x00\x001L\x00\x00'
-        out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
-        print(out)
+        test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01\x00\x00'
+        test_data = test_header + b'testhogehoge'[::-1]
+        ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
         self.assertEqual(out, 'testhogehoge')
-        test_data = test_header + b'\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-        out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
+        test_data = test_header + b'brabrabra'[::-1]
+        ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
         self.assertEqual(out, 'brabrabra')
 
     def tearDown(self):
@@ -113,7 +112,9 @@ class TestCase1(unittest.TestCase):
     """!
     # Tester for FinsUDP.
     This test can work with real PLC.
-    - [x] test01: reading words from a memory.
+    - [x] test01: reading a word from a memory.
+    - [x] test02: reading words from a memory.
+    - [x] test03: reading string from a memory.
     - [x] test02: writing word to a memory.
     - [x] test03: reading bits from a memory.
     """
@@ -127,22 +128,59 @@ class TestCase1(unittest.TestCase):
                 dst_unit_addr=0)
 
     def test01(self):
-        ret = self.fins.read_mem_area(0xA0, 500, 0, 4)
+        ret = self.fins.read_mem_area(
+                DataCreator.EM0_WORD,
+                500, 0, 1, DataCreator.USHORT)
         self.assertEqual(ret[0], 0)
 
     def test02(self):
+        ret = self.fins.read_mem_area(
+                DataCreator.EM0_WORD,
+                500, 0, 3, DataCreator.USHORT)
+        self.assertEqual(ret[0], 0)
+
+    def test03(self):
+        ret = self.fins.read_mem_area(
+                DataCreator.EM0_WORD,
+                553, 0, 8, DataCreator.UCHAR)
+        self.assertEqual(ret[0], 0)
+
+    def test04(self):
         ret = self.fins.write_mem_area(
-                0xA0, 500, 0, 4, [(0, DataCreator.USHORT)]*4)
-        ret, value1 = self.fins.read_mem_area(0xA0, 500, 0, 4)
+                DataCreator.EM0_WORD,
+                0, 0, 4, [(0, DataCreator.USHORT)]*4)
+        ret, value1 = self.fins.read_mem_area(
+                DataCreator.EM0_WORD,
+                0, 0, 4, DataCreator.USHORT)
+        self.assertEqual(value1, (0, 0, 0, 0))
         ret = self.fins.write_mem_area(
-                0xA0, 500, 0, 4, [(3, DataCreator.USHORT)]*4)
-        ret, value2 = self.fins.read_mem_area(0xA0, 500, 0, 4)
+                DataCreator.EM0_WORD,
+                0, 0, 4, [(3, DataCreator.USHORT)]*4)
+        ret, value2 = self.fins.read_mem_area(
+                DataCreator.EM0_WORD,
+                0, 0, 4, DataCreator.USHORT)
         self.assertEqual(value2, (3, 3, 3, 3))
         
-    def test03(self):
-        ret = self.fins.read_mem_area(0x20, 500, 0, 2)
-        print(ret)
-        self.assertEqual(ret[0], 0)
+    def test05(self):
+        str_data = "CNV_32\0\0"
+        ret = self.fins.write_mem_area(
+                DataCreator.EM0_WORD,
+                53, 0, 4, (str_data, DataCreator.STR))
+        self.assertEqual(ret, 0)
+        ret, value1 = self.fins.read_mem_area(
+                DataCreator.EM0_WORD,
+                53, 0, 4, DataCreator.STR)
+        self.assertEqual(value1, str_data)
+        str_data = "TRR_63\0\0"
+        ret = self.fins.write_mem_area(
+                DataCreator.EM0_WORD,
+                53, 0, 4, (str_data, DataCreator.STR))
+        self.assertEqual(ret, 0)
+        ret, value1 = self.fins.read_mem_area(
+                DataCreator.EM0_WORD,
+                53, 0, 4, DataCreator.STR)
+        self.assertEqual(value1, str_data)
+
 
     def tearDown(self):
         self.fins.close()

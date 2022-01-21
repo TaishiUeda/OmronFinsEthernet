@@ -10,7 +10,7 @@
 import struct
 import binascii
 import socket
-from .datacreator import DataCreator
+from .datacreator import DataCreator as datadef
 
 
 class FinsAbstruct():
@@ -40,7 +40,7 @@ class FinsAbstruct():
         self._sock = None
         self._ip_addr = "localhost"
         self._port = 9600
-        self._datacreator = DataCreator(
+        self._datacreator = datadef(
                 src_net_addr, src_node_num, src_unit_addr, srv_id)
 
     def close(self):
@@ -54,30 +54,81 @@ class FinsAbstruct():
         return -1
 
     def set_destination(self, dst_net_addr, dst_node_num, dst_unit_addr=0, delay=2):
-        self._datacreator.set_destination(
+        """!
+        Set destination of message.
+        You have to execute this function once before 
+        @param[in] dst_net_addr Destination network address.
+            Specify within the following ranges.
+            - 0x00: Local netwotk
+            - 0x01 to 0x7F: Remote netwotk (1 to 127 decimal)
+        @param[in] dst_node_num Destination node number.
+            Specify within the following ranges.
+            - 0x01 to 0x7E: Node number in SYSMAC NET network (1 to 126 decimal)
+            - 0x01 to 0x3E: Node number in SYSMAC LINK network (1 to 62 decimal)
+            - 0xFF: Broadcast transmission
+        @param[in] dst_unit_addr Destination unit address.
+            Specify within the following ranges
+            - 0x00: PC (CPU)
+            - 0xFE: SYSMAC NET Link Unit or SYSMAC LINK Unit connected to network
+            - 0x10 to 0x1F: CPU Bus Unit (10 + unit number in hexadecimal
+            Note: The unit address for a CPU Bus Unit is 10 (hexadecimal) plus the unit number set on the front panel of the CPU Bus Unit.
+        @param[in] delay It is possible to specify the response delay of a PC in 10-ms increments.
+            Selecting 0 through F in hexadecimal sets the time required for a PC to respond
+            to the host computer after the PC receives a command block from the host computer.
+            Example:
+                If F (15 in decimal) is set, there will be a delay of 150 ms before the response is sent.
+        @return bytes encoded header
+        """
+        return self._datacreator.set_destination(
             dst_net_addr, dst_node_num, dst_unit_addr, delay)
 
-    def read_mem_area(self, mem_area, addr, bit, num):
-        msg = self._datacreator.command_read_mem_area(mem_area, addr, bit, num)
+    def read_mem_area(self, mem_area, addr, bit, num, dtype):
+        """!
+        Read data from memory areas.
+        @param[in] mem_area memory area type defined in the 
+           FINS manual. All of the types are pronounsed in
+           thisfile (datacreator.py).
+        @param[in] addr address in the memory area.
+        @param[in] bit Bit of the address. If the memory area type
+           is not bit type, this argument is ignored.
+        @param[in] num byte/word size of data to be read.
+        @param[in] dtype data type of read data.
+        @return (return_id, data) 
+            - return_id indicates errors. 0 means no probrem.
+                the others means some error and it defined in
+                FINS reference manual.
+            - data a value of a tuple of values. It relay on the
+                data length wheather it becomes a value or a tuple.
+        """
+        msg = self._datacreator.command_read_mem_area(
+                mem_area, addr, bit, num)
         ret_id, bin_msg = self._send_and_recv(msg)
-        print(len(bin_msg), bin_msg)
-        if ret_id >= 0:
-            msg = self._datacreator.convert_ascii2data(
-                    bin_msg, [(DataCreator.CHAR, 12),
-                              (DataCreator.USHORT, 1),
-                              (DataCreator.USHORT, num)])
-            return msg[12], msg[13:]
-        return ret_id, ()
+        return self._datacreator.decode_read_data(bin_msg, dtype)
 
-    def write_mem_area(self, mem_area, addr, bit, num, data):
-        msg = self._datacreator.command_write_mem_area(mem_area, addr, bit, num, data)
+    def write_mem_area(self, mem_area, addr, bit, num, values):
+        """!
+        @param[in] mem_area memory area type defined in the 
+           FINS manual. All of the types are pronounsed in
+           thisfile (datacreator.py).
+        @param[in] addr address in the memory area.
+        @param[in] bit Bit of the address. If the memory area type
+           is not bit type, this argument is ignored.
+        @param[in] num byte/word size of data to be written.
+        @param[in] values values to be written. They are defined
+           as followings.
+           [(value, type_of_value), ...].
+           Example.
+           [(5, finsudp.datadef.USHORT)]*4 means four values of
+           unsigned short are written into the memory area.
+        @return  return_id 0 means no probrem.
+                the others means some error and it defined in
+                FINS reference manual.
+        """
+        msg = self._datacreator.command_write_mem_area(
+                mem_area, addr, bit, num, values)
         ret_id, bin_msg = self._send_and_recv(msg)
-        if ret_id >= 0:
-            msg = self._datacreator.convert_ascii2data(
-                    bin_msg, [(DataCreator.CHAR, 12),
-                              (DataCreator.USHORT, 1)])
-            return msg[-1]
-        return ret_id
+        return self._datacreator.decode_read_data(
+                bin_msg, datadef.CHAR)[0]
 
     def _send_and_recv(self, msg):
         """

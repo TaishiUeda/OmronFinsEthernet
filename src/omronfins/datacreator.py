@@ -30,7 +30,7 @@ class DataCreator():
     FLOAT = ('f', 4)
     DOUBLE = ('d', 8)
     STR = ('s', 1)
-    BYTES = ('s', 1)
+    BYTES = ('p', 1)
     ## Memory type definition. 
     ## First element of each tuples is type definition according to the fins manual.
     ## Second is size of one element of data.
@@ -78,7 +78,7 @@ class DataCreator():
     EM16_BIT = (0xe6, 1)
     EM17_BIT = (0xe7, 1)
     EM18_BIT = (0xe8, 1)
-    EM0_BIT = (0x20, 1)
+    EM0_WORD = (0xa0, 2)
     EM1_WORD = (0xa1, 2)
     EM2_WORD = (0xa2, 2)
     EM3_WORD = (0xa3, 2)
@@ -183,38 +183,29 @@ class DataCreator():
             if a_data[1] == DataCreator.BYTES:
                 out_bin += a_data[0]
             elif a_data[1] == DataCreator.STR:
-                out_bin += a_data[0].encode('utf-8')
+                out_bin += a_data[0][::-1].encode('utf-8')
             else:
                 out_bin += struct.pack('!'+a_data[1][0], a_data[0])
         return out_bin
 
-    def convert_ascii2data(self, data, fmt):
-        """!
-        convert ascii data according to format.
-        @param data formatted data as a list contains tuples of (type, size).
-        @return tuple of values
-        """
-        # bin_data = binascii.a2b_hex(data)
-        bin_data = data
-        whole_fmt = "!"
-        for a_fmt in fmt:
-            if a_fmt[1] == 1:
-                whole_fmt += a_fmt[0]
-            else:
-                whole_fmt += str(a_fmt[1]) + a_fmt[0][0]
-        return struct.unpack(whole_fmt, bin_data)
-
     def decode_read_data(self, data, dtype):
-        if len(data) <= 12:
-            return None
-        values = data[12:]
+        """! Decode received data.
+        @param[in] data bytes data received.
+        @param[in] dtype type of data. If received data is longer than
+           the input data type, then tuple of values as the data type
+           will be returned.
+        """
+        ret_id = struct.unpack('!H', data[12:14])[0]
+        if len(data) < 14:
+            return ret_id, None
+        values = data[14:]
         if dtype[1] == len(values):
-            return struct.unpack("!"+dtype[0], values)[0]
+            return ret_id, struct.unpack("!"+dtype[0], values)[0]
         num_elem = len(values)//dtype[1]
         decoded = struct.unpack("!"+str(num_elem)+dtype[0], values)
-        if dtype == DataCreator.STR or dtype == DataCreator.BYTES:
-            return decoded[0].decode('unicode-escape')
-        return decoded 
+        if dtype == DataCreator.STR:
+            return ret_id, decoded[0][::-1].decode('utf-8')
+        return ret_id, decoded 
 
     def _create_header(self, dst_node_num, dst_unit_addr, dst_net_addr=0, delay=2):
         fmt = [
@@ -229,18 +220,39 @@ class DataCreator():
         return self._convert_data2ascii(fmt)
 
     def command_read_mem_area(self, mem_area, addr, bit, num):
+        """!
+        @param[in] mem_area memory area type defined in the 
+           FINS manual. All of the types are pronounsed in
+           thisfile (datacreator.py).
+        @param[in] addr address in the memory area.
+        @param[in] bit Bit of the address. If the memory area type
+           is not bit type, this argument is ignored.
+        @param[in] num byte/word size of data to be read.
+        @return bytes fins binary message.
+        """
         fmt = [
                 (b'\x01\x01', DataCreator.BYTES),
-                (mem_area, DataCreator.UCHAR),
+                (mem_area[0], DataCreator.UCHAR),
                 (addr, DataCreator.USHORT),
                 (bit, DataCreator.UCHAR),
                 (num, DataCreator.USHORT)]
         return self._header_bin + self._convert_data2ascii(fmt)
 
     def command_write_mem_area(self, mem_area, addr, bit, num, data):
+        """!
+        @param[in] mem_area memory area type defined in the 
+           FINS manual. All of the types are pronounsed in
+           thisfile (datacreator.py).
+        @param[in] addr address in the memory area.
+        @param[in] bit Bit of the address. If the memory area type
+           is not bit type, this argument is ignored.
+        @param[in] num byte/word size of data to be written.
+        @param[in] data data to be written.
+        @return bytes fins binary message.
+        """
         fmt = [
                 (b'\x01\x02', DataCreator.BYTES),
-                (mem_area, DataCreator.UCHAR),
+                (mem_area[0], DataCreator.UCHAR),
                 (addr, DataCreator.USHORT),
                 (bit, DataCreator.UCHAR),
                 (num, DataCreator.USHORT)]
