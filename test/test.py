@@ -97,10 +97,10 @@ class TestCase0(unittest.TestCase):
 
     def test08(self):
         test_header = b'\x80\x00\x02\x00\r\x00\x00\xaa\x00\x00\x01\x01\x00\x00'
-        test_data = test_header + b'testhogehoge'[::-1]
+        test_data = test_header + b'gehogehostte'[::-1]
         ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
         self.assertEqual(out, 'testhogehoge')
-        test_data = test_header + b'brabrabra'[::-1]
+        test_data = test_header + b'a\0brraabbr'[::-1]
         ret_id, out = self.data_creator.decode_read_data(test_data, DataCreator.STR)
         self.assertEqual(out, 'brabrabra')
 
@@ -115,8 +115,9 @@ class TestCase1(unittest.TestCase):
     - [x] test01: reading a word from a memory.
     - [x] test02: reading words from a memory.
     - [x] test03: reading string from a memory.
-    - [x] test02: writing word to a memory.
-    - [x] test03: reading bits from a memory.
+    - [x] test04: writing word to a memory.
+    - [x] test05: reading bits from a memory.
+    - [x] test06: writing UINT into DWARD area.
     """
     def setUp(self):
         self.fins = FinsUDP(0, 170)
@@ -162,25 +163,30 @@ class TestCase1(unittest.TestCase):
         self.assertEqual(value2, (3, 3, 3, 3))
         
     def test05(self):
-        str_data = "CNV_32\0\0"
+        str_data = 'ok'
         ret = self.fins.write_mem_area(
                 DataCreator.EM0_WORD,
-                53, 0, 4, (str_data, DataCreator.STR))
+                0, 0, 1, (str_data, DataCreator.STR))
         self.assertEqual(ret, 0)
         ret, value1 = self.fins.read_mem_area(
                 DataCreator.EM0_WORD,
-                53, 0, 4, DataCreator.STR)
+                0, 0, 1, DataCreator.STR)
         self.assertEqual(value1, str_data)
-        str_data = "TRR_63\0\0"
+        str_data = 'ok'
         ret = self.fins.write_mem_area(
                 DataCreator.EM0_WORD,
-                53, 0, 4, (str_data, DataCreator.STR))
+                0, 0, 1, (str_data, DataCreator.STR))
         self.assertEqual(ret, 0)
         ret, value1 = self.fins.read_mem_area(
                 DataCreator.EM0_WORD,
-                53, 0, 4, DataCreator.STR)
+                0, 0, 1, DataCreator.STR)
         self.assertEqual(value1, str_data)
 
+    def test06(self):
+        ret = self.fins.write_mem_area(
+                DataCreator.EM0_WORD,
+                0, 0, 2, (0x12345678, DataCreator.UINT))
+        self.assertEqual(ret, 0)
 
     def tearDown(self):
         self.fins.close()

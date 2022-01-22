@@ -182,11 +182,27 @@ class DataCreator():
         out_bin = b''
         for a_data in data:
             if a_data[1] == DataCreator.BYTES:
-                out_bin += a_data[0]
+                data_bin = a_data[0]
             elif a_data[1] == DataCreator.STR:
-                out_bin += a_data[0][::-1].encode('utf-8')
+                data_bin = a_data[0][::-1].encode('utf-8')
             else:
-                out_bin += struct.pack('!'+a_data[1][0], a_data[0])
+                data_bin = struct.pack('!'+a_data[1][0], a_data[0])
+            data_size = len(data_bin)
+            # If the data is loger than 16bit 1element,
+            # it must be swapped to be read correctory by PLC
+            if data_size > 2 and a_data[1] != DataCreator.BYTES:
+                # set length dividable by two
+                if data_size%2 != 0:
+                    data_inv = b'\x00' + data_bin
+                    data_size += 1
+                else:
+                    data_inv = data_bin
+                ushorts = struct.unpack(
+                        '!'+str(data_size//2)+'H', data_inv)
+                ushorts_swapped = ushorts[::-1]
+                data_bin = struct.pack(
+                        '!'+str(data_size//2)+'H', *ushorts_swapped)
+            out_bin += data_bin
         return out_bin
 
     def decode_read_data(self, data, dtype):
@@ -200,13 +216,21 @@ class DataCreator():
         if len(data) < 14:
             return ret_id, None
         values = data[14:]
-        if dtype[1] == len(values):
-            return ret_id, struct.unpack("!"+dtype[0], values)[0]
-        num_elem = len(values)//dtype[1]
-        decoded = struct.unpack("!"+str(num_elem)+dtype[0], values)
+        if dtype == DataCreator.STR or dtype[1] > 2:
+            num_elem = len(values)//2
+            ushorts = struct.unpack("!"+str(num_elem)+'H', values)
+            ushorts_swapped = ushorts[::-1]
+            data_bin = struct.pack('!'+str(num_elem)+'H', *ushorts_swapped)
+        else:
+            data_bin = values
+        num_elem = len(data_bin)//dtype[1]
+        unpacked = struct.unpack("!"+str(num_elem)+dtype[0], data_bin)
         if dtype == DataCreator.STR:
-            return ret_id, decoded[0][::-1].decode('utf-8')
-        return ret_id, decoded 
+            decoded = unpacked[0][::-1].decode('utf-8')
+            return ret_id, decoded.partition('\x00')[0]
+        if len(unpacked) == 1:
+            unpacked = unpacked[0]
+        return ret_id, unpacked
 
     def _create_header(self, dst_node_num, dst_unit_addr, dst_net_addr=0, delay=2):
         fmt = [
@@ -250,6 +274,7 @@ class DataCreator():
         @param[in] num byte/word size of data to be written.
         @param[in] data data to be written.
         @return bytes fins binary message.
+        @retval None number and length of data are mismatch.
         """
         fmt = [
                 (b'\x01\x02', DataCreator.BYTES),
