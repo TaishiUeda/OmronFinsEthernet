@@ -8,10 +8,13 @@ from setuptools import setup, find_packages
 
 setup(
         name='omronfins',
-        version='1.0.0',
+        version='1.0.2',
         description='Utilities for OMRON FINS protocol',
         author='Taishi Ueda',
         author_email='taishi.ueda@gmail.com',
+        url="https://github.com/TaishiUeda/OmronFinsEthernet",
+        long_description=open('README.md', 'r').read(),
+        long_description_content_type='text/markdown',
         packages=["omronfins"],
         package_dir={'': 'src'},
         )

@@ -115,8 +115,9 @@ class TestCase1(unittest.TestCase):
     - [x] test01: reading a word from a memory.
     - [x] test02: reading words from a memory.
     - [x] test03: reading string from a memory.
-    - [x] test02: writing word to a memory.
-    - [x] test03: reading bits from a memory.
+    - [x] test04: writing word to a memory.
+    - [x] test05: reading bits from a memory.
+    - [ ] test06: reading a struct from a memory
     """
     def setUp(self):
         self.fins = FinsUDP(0, 170)
