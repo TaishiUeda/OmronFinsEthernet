@@ -7,6 +7,7 @@ It is confirmed that this can work with NX series PLC.
 ## Usage
 
 Please refer to documents created by doxygen for the details.
+When you access structures' data in PLC, please set memory offset 'CJ' mode.
 
 It's a sample code.
 
