@@ -7,7 +7,11 @@ It is confirmed that this can work with NX series PLC.
 ## Usage
 
 Please refer to documents created by doxygen for the details.
-When you access structures' data in PLC, please set memory offset 'CJ' mode.
+When you access structs' data in PLC, please set memory offset 'CJ' mode.
+And please notice that offset of structure is shown as number of bytes,
+on the other hand, the number of address is defined as number of 16bit segments.
+So, the address of data in a struct can be calculated by adding half number of the 
+offset to the initial address of the struct.
 
 It's a sample code.
 
