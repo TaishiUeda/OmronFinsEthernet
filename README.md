@@ -2,7 +2,7 @@
 Utility functions for FINS protocol used by omron's PLCs
 
 This library can read and write memory area of PLC via FINS protocol.
-It is confirmed that this can work with NX series PLC.
+It is confirmed that this can work with **NX** series PLC.
 
 ## Usage
 
