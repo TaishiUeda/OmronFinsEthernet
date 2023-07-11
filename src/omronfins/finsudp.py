@@ -103,6 +103,8 @@ class FinsAbstruct():
         msg = self._datacreator.command_read_mem_area(
                 mem_area, addr, bit, num)
         ret_id, bin_msg = self._send_and_recv(msg)
+        if ret_id < 0:
+            return ret_id, None
         return self._datacreator.decode_read_data(bin_msg, dtype)
 
     def write_mem_area(self, mem_area, addr, bit, num, values):
